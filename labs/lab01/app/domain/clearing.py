@@ -39,10 +39,12 @@ class ClearingBatch:
             raise DomainError("DUPLICATE_TRANSACTION")
 
     def add_transaction(self,tx):
-        raise NotImplementedError("ЛР1: завершите ClearingBatch.add_transaction")
+        self.validate_add(tx)
+        self._transactions.append(tx)
+
 
     def total(self):
-        raise NotImplementedError("ЛР1: завершите ClearingBatch.total")
+        return total_money((tx.amount for tx in self.transactions), self.currency)
 
     def close(self):
         if self.status!="OPEN":
