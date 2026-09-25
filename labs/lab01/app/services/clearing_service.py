@@ -40,7 +40,8 @@ class ClearingService:
 from app.support.types import Repository,money
 
 
-
+# Ниже — прежний рабочий путь. Перенесите поведение, затем обновите
+# make_entity, invoke, view и new_service: сигнатуры должны сохраниться.
 from app.support.types import batch_snapshot,ensure_unassigned,money
 from app.support.errors import DomainError
 
