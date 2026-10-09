@@ -58,3 +58,12 @@ class ClearingBatch:
         if not self.transactions:
             raise DomainError("EMPTY_BATCH")
         self._status = "CLOSED"
+
+    def remove_transaction(self, transaction_id: str) -> ClearingTransaction:
+        """Remove an operation from an open batch without reordering the others."""
+        if self.status != "OPEN":
+            raise DomainError("BATCH_CLOSED")
+        for index, tx in enumerate(self._transactions):
+            if tx.transaction_id == transaction_id:
+                return self._transactions.pop(index)
+        raise DomainError("NOT_FOUND")
