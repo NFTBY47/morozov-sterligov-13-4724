@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from app.domain.clearing import DatedClearingTransaction, current_settlement_date
 from app.support.errors import DomainError
 from app.support.types import CheckResult, Money
 
@@ -33,4 +34,14 @@ class MaximumBatchAmountRule(ClearingEligibilityRule):
         prospective_total = batch.total().add(tx.amount)
         if prospective_total.amount > self._maximum.amount:
             return CheckResult(False, "BATCH_AMOUNT_LIMIT")
+        return CheckResult(True)
+
+
+class SameSettlementDateRule(ClearingEligibilityRule):
+    def check(self, batch, tx):
+        settlement_date = (
+            tx.settlement_date if isinstance(tx, DatedClearingTransaction) else current_settlement_date()
+        )
+        if settlement_date != batch.settlement_date:
+            return CheckResult(False, "SETTLEMENT_DATE_MISMATCH")
         return CheckResult(True)

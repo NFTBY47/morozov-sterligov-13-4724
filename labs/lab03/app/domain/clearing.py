@@ -1,11 +1,30 @@
-from app.support.types import identifier,currency,total_money,ClearingTransaction
+from dataclasses import dataclass
+from datetime import date, datetime, timezone
+
 from app.support.errors import DomainError
+from app.support.types import ClearingTransaction, currency, date_only, identifier, total_money
+
+
+def current_settlement_date():
+    return datetime.now(timezone.utc).date()
+
+
+@dataclass(frozen=True)
+class DatedClearingTransaction(ClearingTransaction):
+    settlement_date: date
+
+    def __post_init__(self):
+        super().__post_init__()
+        date_only(self.settlement_date)
 
 
 class ClearingBatch:
-    def __init__(self,batch_id,code):
+    def __init__(self, batch_id, code, *, settlement_date=None):
         self._batch_id=identifier(batch_id)
         self._currency=currency(code)
+        self._settlement_date = (
+            current_settlement_date() if settlement_date is None else date_only(settlement_date)
+        )
         self._status="OPEN"
         self._transactions=[]
 
@@ -14,6 +33,10 @@ class ClearingBatch:
 
     @property
     def currency(self):return self._currency
+
+    @property
+    def settlement_date(self):
+        return self._settlement_date
 
     @property
     def status(self):return self._status
