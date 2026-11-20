@@ -1,5 +1,5 @@
 from app.domain.clearing import ClearingBatch
-from app.domain.eligibility import MaximumBatchAmountRule, MaximumBatchCountRule
+from app.domain.eligibility import MaximumBatchAmountRule, MaximumBatchCountRule, SameSettlementDateRule
 from app.support.errors import DomainError
 from app.support.types import Repository, batch_snapshot, checked, ensure_unassigned, money
 
@@ -9,8 +9,8 @@ class ClearingService:
         self._repository=repository
         self._rules=tuple(rules)
 
-    def create_batch(self,batch_id,currency):
-        batch=self._repository.add(ClearingBatch(batch_id,currency))
+    def create_batch(self, batch_id, currency, *, settlement_date=None):
+        batch = self._repository.add(ClearingBatch(batch_id, currency, settlement_date=settlement_date))
         return batch_snapshot(batch)
 
     def get_batch(self,batch_id):
@@ -48,5 +48,9 @@ def view(entity):
 def new_service(repository=None):
     if repository is None:
         repository = Repository("batch_id", "DUPLICATE_BATCH")
-    rules = (MaximumBatchCountRule(3), MaximumBatchAmountRule(money("100", "EUR")))
+    rules = (
+        MaximumBatchCountRule(3),
+        MaximumBatchAmountRule(money("100", "EUR")),
+        SameSettlementDateRule(),
+    )
     return ClearingService(repository, rules)
