@@ -1,6 +1,7 @@
 from app.domain.clearing import ClearingBatch
-from app.support.types import checked,money,batch_snapshot,ensure_unassigned,total_money,BatchSnapshot
+from app.domain.eligibility import MaximumBatchAmountRule, MaximumBatchCountRule
 from app.support.errors import DomainError
+from app.support.types import Repository, batch_snapshot, checked, ensure_unassigned, money
 
 
 class ClearingService:
@@ -15,8 +16,18 @@ class ClearingService:
     def get_batch(self,batch_id):
         return batch_snapshot(self._repository.get(batch_id))
 
-    def add(self,batch_id,tx):
-        raise NotImplementedError("ЛР3: реализуйте ClearingService.add по TASK.md")
+    def add(self, batch_id, tx):
+        batch = self._repository.get(batch_id)
+        batch.validate_add(tx)
+        ensure_unassigned(self._repository, tx.transaction_id)
+
+        for rule in self._rules:
+            result = checked(rule.check(batch, tx))
+            if not result.allowed:
+                raise DomainError(result.code)
+
+        batch.add_transaction(tx)
+        return self.get_batch(batch_id)
 
     def close(self,batch_id):
         self._repository.get(batch_id).close()
@@ -34,7 +45,8 @@ def view(entity):
     return {'batch_id': entity.batch_id, 'currency': entity.currency, 'status': entity.status, 'transactions': entity.transactions}
 
 
-from app.support.types import Repository,money
-
 def new_service(repository=None):
-    return ClearingService(repository if repository is not None else Repository("batch_id","DUPLICATE_BATCH"))
+    if repository is None:
+        repository = Repository("batch_id", "DUPLICATE_BATCH")
+    rules = (MaximumBatchCountRule(3), MaximumBatchAmountRule(money("100", "EUR")))
+    return ClearingService(repository, rules)
